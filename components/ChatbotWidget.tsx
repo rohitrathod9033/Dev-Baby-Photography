@@ -30,6 +30,7 @@ export default function ChatbotWidget() {
 
   useEffect(() => {
     if (!hasGreeted) {
+      console.log("[v0] ChatbotWidget mounted, showing greeting")
       setHasGreeted(true)
       const openingMessage: Message = {
         id: "greeting",
@@ -105,7 +106,7 @@ export default function ChatbotWidget() {
 
       setMessages((prev) => [...prev, botMessage])
     } catch (error) {
-      console.error("Error:", error)
+      console.error("[v0] Chat error:", error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: "Kshama kijiye, kuch problem ho gaya. Please dobara try kijiye ya support team se contact kijiye.",
