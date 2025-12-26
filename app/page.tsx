@@ -5,6 +5,8 @@ import Testimonials from "@/src/components/Testimonials"
 import Gallery from "@/src/components/Gallery"
 import CTA from "@/src/components/CTA"
 import Footer from "@/src/components/Footer"
+import ScrollProgress from "@/components/ScrollProgress"
+import SpotlightEffect from "@/components/SpotlightEffect"
 
 export const metadata = {
   title: "Tiny Treasures Studio - Professional Photography for Every Milestone",
@@ -14,7 +16,9 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen relative overflow-x-hidden">
+      <ScrollProgress />
+      <SpotlightEffect />
       <Navbar />
       <Hero />
       <Services />
