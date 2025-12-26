@@ -1,10 +1,9 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Send, MessageCircle, X, Minimize2, Maximize2, Calendar, Phone, Mail } from "lucide-react"
+import { Send, MessageCircle, X, Minimize2, Maximize2 } from "lucide-react"
 
 interface Message {
   id: string
@@ -21,19 +20,8 @@ interface Message {
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      content: "Hi! Welcome to Tiny Treasures Studio. Main aapka assistant hoon - kaise madad kar sakta hoon aaj?",
-      sender: "bot",
-      timestamp: new Date(),
-      actions: [
-        { label: "Book Appointment", action: "appointment", href: "/appointments" },
-        { label: "View Packages", action: "packages", href: "/packages" },
-        { label: "Contact Us", action: "contact", href: "/contact" },
-      ],
-    },
-  ])
+  const [hasGreeted, setHasGreeted] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -42,12 +30,30 @@ export default function Chatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
+  useEffect(() => {
+    if (isOpen && !hasGreeted) {
+      setHasGreeted(true)
+      const openingMessage: Message = {
+        id: "greeting",
+        content:
+          "Hi 👋\nMain aapka virtual assistant hoon 😊\nMain aapki appointment, packages, aur payments me help kar sakta hoon.\nAap kya karna chahoge?",
+        sender: "bot",
+        timestamp: new Date(),
+        actions: [
+          { label: "Appointment Book Karni Hai", action: "appointment", href: "/appointments" },
+          { label: "Packages Dekh Sakte Ho", action: "packages", href: "/appointments" },
+          { label: "Payment Help", action: "payment" },
+        ],
+      }
+      setMessages([openingMessage])
+    }
+  }, [isOpen, hasGreeted])
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!input.trim()) return
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       content: input,
@@ -70,7 +76,6 @@ export default function Chatbot() {
 
       const data = await response.json()
 
-      // Add bot response with actions based on intent
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: data.message,
@@ -80,18 +85,23 @@ export default function Chatbot() {
 
       if (data.intent === "appointment") {
         botMessage.actions = [
-          { label: "Book Now", action: "book_appointment", href: "/appointments" },
-          { label: "View Slots", action: "view_slots", href: "/appointments" },
+          { label: "Appointment Book Karni Hai", action: "book_appointment", href: "/appointments" },
+          { label: "Slots Dekho", action: "view_slots", href: "/appointments" },
         ]
       } else if (data.intent === "packages") {
         botMessage.actions = [
-          { label: "Explore Packages", action: "explore_packages", href: "/packages" },
-          { label: "Get Pricing", action: "pricing", href: "/packages" },
+          { label: "Packages Explore Karo", action: "explore_packages", href: "/appointments" },
+          { label: "Pricing Dekho", action: "pricing" },
+        ]
+      } else if (data.intent === "payment") {
+        botMessage.actions = [
+          { label: "Payment Kaise Hogi?", action: "payment_info" },
+          { label: "Admin se Connect Karo", action: "admin_connect" },
         ]
       } else if (data.intent === "contact") {
         botMessage.actions = [
           { label: "Contact Form", action: "contact_form", href: "/contact" },
-          { label: "Call Us", action: "call" },
+          { label: "Call Karo", action: "call" },
         ]
       }
 
@@ -100,9 +110,10 @@ export default function Chatbot() {
       console.error("Error:", error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Kshama kijiye, kuch problem ho gaya. Please try again ya admin se contact kijiye.",
+        content: "Kshama kijiye, kuch problem ho gaya. Please dobara try kijiye ya support team se contact kijiye.",
         sender: "bot",
         timestamp: new Date(),
+        actions: [{ label: "Admin se Connect Karo", action: "admin_connect" }],
       }
       setMessages((prev) => [...prev, errorMessage])
     } finally {
@@ -114,125 +125,169 @@ export default function Chatbot() {
     if (href) {
       window.location.href = href
     } else if (action === "call") {
-      window.location.href = "tel:+91-XXXX-XXX-XXX"
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        content: "Mujhe call karni hai",
+        sender: "user",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, userMsg])
+
+      const callMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "Aap humse yahan call kar sakte ho: +91-XXXX-XXXX-XX\nYa aap kuch aur guidance chahoge?",
+        sender: "bot",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, callMsg])
+    } else if (action === "admin_connect") {
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        content: "Mujhe support team se connect karna hai",
+        sender: "user",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, userMsg])
+
+      const escalateMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        content:
+          "Main aapko support team se connect kar deta hoon 👍\nPlease 5-10 minutes ke liye wait kijiye. Jaldi hi admin aapko reply kar dega!",
+        sender: "bot",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, escalateMsg])
     }
   }
 
   return (
     <>
-      {/* Floating Button */}
       <AnimatePresence mode="wait">
         {!isOpen && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-rose-400 to-rose-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 hover:scale-110"
+            className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-rose-500 text-white shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center z-40 hover:scale-110 group"
+            title="Chat with us!"
           >
-            <MessageCircle className="w-6 h-6" />
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+              className="absolute inset-0 rounded-full bg-rose-400 opacity-20"
+            />
+            <MessageCircle className="w-8 h-8 relative z-10" />
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* Chatbot Window */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.8, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={`fixed bottom-6 right-6 w-96 z-50 transition-all duration-300 ${
-              isMinimized ? "h-auto" : "h-[600px]"
+            exit={{ opacity: 0, scale: 0.8, y: 40 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${
+              isMinimized ? "w-96 h-auto" : "w-96 h-[600px]"
             }`}
           >
-            <div className="bg-gradient-to-b from-white to-slate-50 rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-full backdrop-blur-xl bg-opacity-95">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-rose-400 to-rose-500 text-white px-6 py-4 flex items-center justify-between">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col h-full">
+              <div className="bg-gradient-to-r from-rose-400 via-rose-500 to-rose-600 text-white px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5" />
+                  <div className="w-12 h-12 rounded-full bg-white bg-opacity-25 flex items-center justify-center backdrop-blur-sm border border-white border-opacity-30">
+                    <MessageCircle className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Tiny Treasures Assistant</h3>
-                    <p className="text-xs text-rose-50">Always here to help</p>
+                    <h3 className="font-bold text-base">Tiny Treasures</h3>
+                    <p className="text-xs text-rose-50 font-medium">Online Assistant</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
+                <div className="flex gap-1">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setIsMinimized(!isMinimized)}
-                    className="hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-all"
+                    className="hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-all backdrop-blur-sm"
                   >
                     {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-all"
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setIsOpen(false)
+                      setHasGreeted(false)
+                    }}
+                    className="hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-all backdrop-blur-sm"
                   >
                     <X className="w-4 h-4" />
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
-              {/* Messages */}
               {!isMinimized && (
                 <>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    <AnimatePresence>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-white to-gray-50">
+                    <AnimatePresence mode="popLayout">
                       {messages.map((msg, index) => (
                         <motion.div
                           key={msg.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ delay: index * 0.05 }}
+                          className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
                         >
-                          {/* Message bubble */}
-                          <div className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                            <div
-                              className={`max-w-xs px-4 py-2 rounded-lg text-sm ${
-                                msg.sender === "user"
-                                  ? "bg-gradient-to-r from-rose-400 to-rose-500 text-white rounded-br-none"
-                                  : "bg-slate-100 text-slate-900 rounded-bl-none"
-                              }`}
-                            >
-                              {msg.content}
-                            </div>
+                          <div
+                            className={`max-w-xs px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                              msg.sender === "user"
+                                ? "bg-gradient-to-br from-rose-400 to-rose-500 text-white rounded-br-sm shadow-md"
+                                : "bg-gray-100 text-gray-900 rounded-bl-sm shadow-sm"
+                            }`}
+                          >
+                            {msg.content.split("\n").map((line, i) => (
+                              <div key={i}>{line}</div>
+                            ))}
                           </div>
-
-                          {/* Quick action buttons */}
-                          {msg.actions && msg.actions.length > 0 && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="flex flex-wrap gap-2 mt-2"
-                            >
-                              {msg.actions.map((action, idx) => (
-                                <motion.button
-                                  key={idx}
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={() => handleQuickAction(action.action, action.href)}
-                                  className="text-xs px-3 py-1.5 rounded-full bg-gradient-to-r from-rose-400 to-rose-500 text-white hover:shadow-lg transition-all font-medium flex items-center gap-1"
-                                >
-                                  {action.action === "appointment" && <Calendar className="w-3 h-3" />}
-                                  {action.action === "contact" && <Mail className="w-3 h-3" />}
-                                  {action.action === "call" && <Phone className="w-3 h-3" />}
-                                  {action.label}
-                                </motion.button>
-                              ))}
-                            </motion.div>
-                          )}
                         </motion.div>
                       ))}
+
+                      {messages.length > 0 &&
+                        messages[messages.length - 1].sender === "bot" &&
+                        messages[messages.length - 1].actions && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex flex-wrap gap-2 mt-3 pl-1"
+                          >
+                            {messages[messages.length - 1].actions?.map((action, idx) => (
+                              <motion.button
+                                key={idx}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: idx * 0.1 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleQuickAction(action.action, action.href)}
+                                className="text-xs px-3 py-2 rounded-full bg-gradient-to-r from-rose-400 to-rose-500 text-white hover:shadow-lg transition-all font-medium whitespace-nowrap"
+                              >
+                                {action.label}
+                              </motion.button>
+                            ))}
+                          </motion.div>
+                        )}
                     </AnimatePresence>
 
                     {isLoading && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2">
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2 items-center">
                         <div className="flex gap-1.5">
                           {[0, 1, 2].map((i) => (
                             <motion.div
                               key={i}
-                              animate={{ scale: [1, 1.3, 1] }}
+                              animate={{ scale: [1, 1.4, 1] }}
                               transition={{
                                 duration: 0.6,
                                 repeat: Number.POSITIVE_INFINITY,
@@ -242,28 +297,28 @@ export default function Chatbot() {
                             />
                           ))}
                         </div>
+                        <span className="text-xs text-gray-500">Typing...</span>
                       </motion.div>
                     )}
 
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Input */}
-                  <form onSubmit={handleSendMessage} className="border-t border-slate-200 p-4">
+                  <form onSubmit={handleSendMessage} className="border-t border-gray-100 p-4 bg-white">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-400 focus:ring-opacity-30 transition-all text-sm"
+                        placeholder="Apna message type kijiye..."
+                        className="flex-1 px-4 py-3 rounded-full border-2 border-gray-200 focus:outline-none focus:border-rose-400 focus:ring-0 transition-all text-sm placeholder-gray-400"
                       />
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         type="submit"
                         disabled={!input.trim() || isLoading}
-                        className="bg-gradient-to-r from-rose-400 to-rose-500 text-white p-2 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-gradient-to-r from-rose-400 to-rose-500 text-white p-3 rounded-full hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                       >
                         <Send className="w-4 h-4" />
                       </motion.button>
