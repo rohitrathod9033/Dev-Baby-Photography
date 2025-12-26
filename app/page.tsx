@@ -7,6 +7,7 @@ import CTA from "@/src/components/CTA"
 import Footer from "@/src/components/Footer"
 import ScrollProgress from "@/components/ScrollProgress"
 import SpotlightEffect from "@/components/SpotlightEffect"
+import ChatbotWidget from "@/components/ChatbotWidget"
 
 export const metadata = {
   title: "Tiny Treasures Studio - Professional Photography for Every Milestone",
@@ -23,6 +24,7 @@ export default function Home() {
       <Hero />
       <Services />
       <Gallery />
+      <ChatbotWidget />
       <Testimonials />
       <CTA />
       <Footer />
