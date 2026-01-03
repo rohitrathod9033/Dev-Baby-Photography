@@ -151,7 +151,13 @@ const PackageForm: React.FC<PackageFormProps> = ({ editingId, onSuccess }) => {
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) setErrors({ ...errors, [field]: undefined })
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
   }
 
   const handleFeatureChange = (index: number, value: string) => {

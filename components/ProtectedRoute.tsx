@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { Navigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 
 interface ProtectedRouteProps {
@@ -12,6 +13,17 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
   const { isAuthenticated, isAdmin, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/login")
+      } else if (requiredRole === "admin" && !isAdmin) {
+        router.push("/packages")
+      }
+    }
+  }, [isLoading, isAuthenticated, isAdmin, requiredRole, router])
 
   if (isLoading) {
     return (
@@ -24,12 +36,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     )
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
-  if (requiredRole === "admin" && !isAdmin) {
-    return <Navigate to="/packages" replace />
+  if (!isAuthenticated || (requiredRole === "admin" && !isAdmin)) {
+    return null
   }
 
   return <>{children}</>

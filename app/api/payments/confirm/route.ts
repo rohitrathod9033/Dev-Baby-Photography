@@ -5,7 +5,8 @@ import connectDB from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
-    apiVersion: "2024-12-18.acacia",
+    // @ts-ignore
+    apiVersion: "2024-06-20",
 });
 
 export async function GET(req: Request) {

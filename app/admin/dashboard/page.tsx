@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
     toast({
       title: "Logged out",
       description: "You have been successfully logged out.",
-    })
+    } as any)
     router.push("/")
   }
 

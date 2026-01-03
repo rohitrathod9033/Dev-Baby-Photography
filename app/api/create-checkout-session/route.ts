@@ -6,7 +6,8 @@ import Booking from "@/models/Booking";
 import { getCurrentUser } from "@/lib/auth";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
-    apiVersion: "2024-12-18.acacia",
+    // @ts-ignore
+    apiVersion: "2024-06-20",
 });
 
 export async function POST(req: Request) {
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
             success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/packages`,
             metadata: {
-                packageId,
+                packageId: String(packageId),
                 bookingId: newBooking._id.toString(),
             },
         });
