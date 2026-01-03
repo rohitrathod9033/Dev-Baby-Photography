@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -190,9 +188,10 @@ export default function Chatbot() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 40 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className={`fixed bottom-6 right-6 z-50 transition-all duration-300 ${
-              isMinimized ? "w-96 h-auto" : "w-96 h-[600px]"
-            }`}
+            className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 transition-all duration-300 shadow-2xl rounded-2xl ${isMinimized
+                ? "w-[min(384px,90vw)] h-auto"
+                : "w-[min(384px,90vw)] h-[min(600px,75vh)]"
+              }`}
           >
             <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col h-full">
               <div className="bg-gradient-to-r from-rose-400 via-rose-500 to-rose-600 text-white px-6 py-4 flex items-center justify-between">
@@ -242,11 +241,10 @@ export default function Chatbot() {
                           className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
                         >
                           <div
-                            className={`max-w-xs px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                              msg.sender === "user"
-                                ? "bg-gradient-to-br from-rose-400 to-rose-500 text-white rounded-br-sm shadow-md"
-                                : "bg-gray-100 text-gray-900 rounded-bl-sm shadow-sm"
-                            }`}
+                            className={`max-w-xs px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.sender === "user"
+                              ? "bg-gradient-to-br from-rose-400 to-rose-500 text-white rounded-br-sm shadow-md"
+                              : "bg-gray-100 text-gray-900 rounded-bl-sm shadow-sm"
+                              }`}
                           >
                             {msg.content.split("\n").map((line, i) => (
                               <div key={i}>{line}</div>

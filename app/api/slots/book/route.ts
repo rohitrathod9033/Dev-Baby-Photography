@@ -1,61 +1,59 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
 import Slot from "@/models/Slot"
 import { getCurrentUser } from "@/lib/auth"
 
-export async function POST(request: NextRequest) {
-  try {
-    await connectDB()
+export async function POST(request: Request) {
+    try {
+        const user = await getCurrentUser()
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
 
-    const currentUser = await getCurrentUser()
-    if (!currentUser) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+        const body = await request.json()
+        const { date, startTime, endTime } = body
+
+        if (!date || !startTime || !endTime) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+        }
+
+        await connectDB()
+
+        const bookingDate = new Date(date)
+        // Normalize to midnight UTC to match our storage convention if strictly needed,
+        // but the query below handles finding the likely candidate.
+        // However, if we are creating a new slot, we should ensure the date is clean.
+        bookingDate.setUTCHours(0, 0, 0, 0)
+
+        // Check if slot already exists
+        const existingSlot = await Slot.findOne({
+            date: bookingDate,
+            startTime: startTime,
+        })
+
+        if (existingSlot) {
+            if (existingSlot.isBooked) {
+                return NextResponse.json({ error: "Slot already booked" }, { status: 409 })
+            }
+
+            // Update existing slot
+            existingSlot.isBooked = true
+            existingSlot.bookedBy = user.id
+            await existingSlot.save()
+        } else {
+            // Create new slot
+            await Slot.create({
+                date: bookingDate,
+                startTime,
+                endTime,
+                isBooked: true,
+                bookedBy: user.id,
+            })
+        }
+
+        return NextResponse.json({ success: true })
+    } catch (error) {
+        console.error("Error booking slot:", error)
+        return NextResponse.json({ error: "Failed to book slot" }, { status: 500 })
     }
-
-    const { date, startTime, endTime } = await request.json()
-
-    if (!date || !startTime || !endTime) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
-    }
-
-    // Check if slot already exists
-    let slot = await Slot.findOne({
-      date: new Date(date),
-      startTime,
-      endTime,
-    })
-
-    // CRITICAL: Prevent double booking at DB level
-    if (slot && slot.isBooked) {
-      return NextResponse.json({ error: "Slot is already booked" }, { status: 409 })
-    }
-
-    if (!slot) {
-      // Create new slot if it doesn't exist
-      slot = new Slot({
-        date: new Date(date),
-        startTime,
-        endTime,
-        isBooked: true,
-        bookedBy: currentUser.id,
-      })
-    } else {
-      // Update existing slot
-      slot.isBooked = true
-      slot.bookedBy = currentUser.id
-    }
-
-    await slot.save()
-
-    return NextResponse.json(
-      {
-        message: "Slot booked successfully",
-        slot,
-      },
-      { status: 201 },
-    )
-  } catch (error) {
-    console.error("[v0] Book slot error:", error)
-    return NextResponse.json({ error: "Failed to book slot" }, { status: 500 })
-  }
 }

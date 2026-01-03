@@ -1,60 +1,53 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import { signToken, setAuthCookie, JwtPayload } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
 import User from "@/models/User"
-import { signToken, setAuthCookie } from "@/lib/auth"
 
-export async function POST(request: NextRequest) {
-  try {
-    await connectDB()
+export async function POST(request: Request) {
+    try {
+        const { email, password } = await request.json()
 
-    const { email, password, role } = await request.json()
+        if (!email || !password) {
+            return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+        }
 
-    // Validation
-    if (!email || !password) {
-      return NextResponse.json({ error: "Email and password required" }, { status: 400 })
+        await connectDB()
+
+        // Find user by email (include password for comparison)
+        const user = await User.findOne({ email }).select("+password")
+
+        if (!user) {
+            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+        }
+
+        // Verify password
+        const isMatch = await user.comparePassword(password)
+        if (!isMatch) {
+            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+        }
+
+        // Create JWT payload
+        const payload: JwtPayload = {
+            id: user._id.toString(),
+            email: user.email,
+            role: user.role,
+        }
+
+        // Sign and set cookie
+        const token = await signToken(payload)
+        await setAuthCookie(token)
+
+        // Return user info (excluding password)
+        const userInfo = {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role,
+        }
+
+        return NextResponse.json({ user: userInfo })
+    } catch (error) {
+        console.error("Login error:", error)
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 })
     }
-
-    // Find user and get password
-    const user = await User.findOne({ email }).select("+password")
-    if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
-    }
-
-    // Check role if specified (for admin login)
-    if (role && user.role !== role) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
-    }
-
-    // Compare password
-    const isPasswordValid = await user.comparePassword(password)
-    if (!isPasswordValid) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
-    }
-
-    // Generate token
-    const token = await signToken({
-      id: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    })
-
-    // Set auth cookie
-    await setAuthCookie(token)
-
-    return NextResponse.json(
-      {
-        message: "Login successful",
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        },
-      },
-      { status: 200 },
-    )
-  } catch (error) {
-    console.error("[v0] Login error:", error)
-    return NextResponse.json({ error: "Login failed" }, { status: 500 })
-  }
 }

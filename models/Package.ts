@@ -1,54 +1,34 @@
 import mongoose, { Schema, type Document } from "mongoose"
 
 export interface IPackage extends Document {
-  name: string
-  category: string
+  title: string
+  subtitle: string
   description: string
   price: number
+  duration: string
+  photos: string
   features: string[]
-  duration: number
-  durationUnit: string
-  images: string[]
+  category: string
+  popular: boolean
+  image?: string
+  color?: string
   createdAt: Date
   updatedAt: Date
 }
 
 const PackageSchema = new Schema<IPackage>(
   {
-    name: {
-      type: String,
-      required: [true, "Please provide a package name"],
-    },
-    category: {
-      type: String,
-      required: [true, "Please provide a category"],
-    },
-    description: {
-      type: String,
-      required: [true, "Please provide a description"],
-    },
-    price: {
-      type: Number,
-      required: [true, "Please provide a price"],
-      min: 0,
-    },
-    features: {
-      type: [String],
-      default: [],
-    },
-    duration: {
-      type: Number,
-      required: [true, "Please provide a duration"],
-    },
-    durationUnit: {
-      type: String,
-      enum: ["hours", "days", "weeks", "months"],
-      default: "hours",
-    },
-    images: {
-      type: [String],
-      default: [],
-    },
+    title: { type: String, required: true },
+    subtitle: { type: String, required: true },
+    description: { type: String, required: true },
+    price: { type: Number, required: true },
+    duration: { type: String, required: true },
+    photos: { type: String, required: true },
+    features: { type: [String], default: [] },
+    category: { type: String, required: true },
+    popular: { type: Boolean, default: false },
+    image: { type: String },
+    color: { type: String },
   },
   { timestamps: true },
 )

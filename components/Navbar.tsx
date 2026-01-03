@@ -2,52 +2,17 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X, LogOut, Shield, User } from "lucide-react"
-import { authAPI } from "@/lib/api-client"
+import { useAuth } from "../contexts/auth-context"
 
-interface CurrentUser {
-  id: string
-  email: string
-  name: string
-  role: "user" | "admin"
-}
-
-export default function Navbar() {
+const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [user, setUser] = useState<CurrentUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
   const pathname = usePathname()
-
-  useEffect(() => {
-    // Fetch current user
-    const fetchUser = async () => {
-      try {
-        const data = await authAPI.getCurrentUser()
-        setUser(data.user)
-      } catch (error) {
-        setUser(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchUser()
-  }, [])
-
-  const handleLogout = async () => {
-    try {
-      await authAPI.logout()
-      setUser(null)
-      router.push("/")
-      setIsMobileMenuOpen(false)
-    } catch (error) {
-      console.error("[v0] Logout failed:", error)
-    }
-  }
+  const router = useRouter()
+  const { user, isAuthenticated, logout, isAdmin } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,10 +25,17 @@ export default function Navbar() {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Packages", path: "/packages" },
-    { name: "Gallery", path: "/#gallery" },
-    { name: "About", path: "/#about" },
-    { name: "Contact", path: "/#contact" },
+    { name: "Appointments", path: "/appointments" },
+    { name: "About", path: "/about" },
+    { name: "Contact", path: "/contact" },
+    { name: "Help", path: "/ChatbotWidget" },
   ]
+
+  const handleLogout = () => {
+    logout()
+    router.push("/")
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <motion.nav
@@ -89,7 +61,7 @@ export default function Navbar() {
             <Link
               key={link.name}
               href={link.path}
-              className={`relative font-medium text-sm tracking-wide transition-colors duration-300 hover:text-primary ${
+                className={`relative font-medium text-sm tracking-wide transition-colors duration-300 hover:text-primary ${
                 pathname === link.path ? "text-primary" : "text-foreground/80"
               }`}
             >
@@ -105,15 +77,13 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          {isLoading ? (
-            <div className="text-sm">Loading...</div>
-          ) : user ? (
+          {isAuthenticated ? (
             <>
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10">
                 <User className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">{user.name}</span>
+                <span className="text-sm font-medium text-foreground">{user?.name}</span>
               </div>
-              {user.role === "admin" && (
+              {isAdmin && (
                 <Link href="/admin/dashboard">
                   <motion.button
                     whileHover={{ scale: 1.02, y: -2 }}
@@ -146,7 +116,7 @@ export default function Navbar() {
                   Sign In
                 </motion.button>
               </Link>
-              <Link href="/packages">
+              <Link href="/appointments">
                 <motion.button
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -193,9 +163,9 @@ export default function Navbar() {
               ))}
 
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                {user ? (
+                {isAuthenticated ? (
                   <div className="space-y-3">
-                    {user.role === "admin" && (
+                    {isAdmin && (
                       <Link href="/admin/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
                         <button className="btn-secondary w-full gap-2 flex items-center justify-center">
                           <Shield className="w-4 h-4" />
@@ -216,7 +186,7 @@ export default function Navbar() {
                     <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
                       <button className="btn-outline w-full">Sign In</button>
                     </Link>
-                    <Link href="/packages" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/appointments" onClick={() => setIsMobileMenuOpen(false)}>
                       <button className="btn-primary w-full">Book a Session</button>
                     </Link>
                   </div>
@@ -229,3 +199,5 @@ export default function Navbar() {
     </motion.nav>
   )
 }
+
+export default Navbar

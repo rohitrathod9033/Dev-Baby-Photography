@@ -1,60 +1,66 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Check, Clock, ImageIcon, ArrowRight, Lock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
+import { Check, Clock, Camera, ImageIcon, Sparkles, ArrowRight, Lock } from "lucide-react"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
-import type { IPackage } from "@/models/Package"
+import { useAuth } from "@/contexts/auth-context"
+import { usePackages } from "@/contexts/packages-context"
+import { useToast } from "@/hooks/use-toast"
 
 export default function PackagesPage() {
   const router = useRouter()
+  const { user } = useAuth()
+  console.log("PackagesPage User State:", user)
+  const { packages, isLoading } = usePackages()
   const { toast } = useToast()
-  const [packages, setPackages] = useState<IPackage[]>([])
-  const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchPackagesAndUser = async () => {
-      try {
-        const packagesRes = await fetch("/api/packages")
-        if (packagesRes.ok) {
-          const data = await packagesRes.json()
-          setPackages(data.packages)
-        }
+  const handleBooking = async (pkg: any) => {
+    try {
+      toast({
+        title: "Processing Booking",
+        description: "Please wait while we redirect you to payment...",
+      })
 
-        const userRes = await fetch("/api/auth/me")
-        if (userRes.ok) {
-          const userData = await userRes.json()
-          setUser(userData.user)
-        }
-      } catch (error) {
-        console.error("[v0] Error fetching data:", error)
-      } finally {
-        setIsLoading(false)
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          packageId: pkg.id,
+          title: pkg.title,
+          price: pkg.price,
+          image: pkg.image,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create checkout session")
       }
+
+      const { url } = await response.json()
+      if (url) {
+        window.location.href = url
+      }
+    } catch (error) {
+      console.error("Booking error:", error)
+      toast({
+        title: "Booking Failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
     }
-
-    fetchPackagesAndUser()
-  }, [])
-
-  const handleBooking = (packageId: string, packageTitle: string) => {
-    if (!user) {
-      router.push("/login")
-      return
-    }
-
-    toast({
-      title: "Booking Request Received",
-      description: `${packageTitle} booking request submitted. We'll contact you shortly to confirm details.`,
-    })
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-background"
+    >
       <Navbar />
 
       {/* Hero Section */}
@@ -83,14 +89,17 @@ export default function PackagesPage() {
       <section className="py-16 md:py-24">
         <div className="container mx-auto px-6">
           {isLoading ? (
-            <div className="text-center py-12">Loading packages...</div>
-          ) : packages.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No packages available</div>
+            <div className="flex justify-center items-center py-20">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p className="text-muted-foreground animate-pulse">Loading packages...</p>
+              </div>
+            </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-8 lg:gap-10">
               {packages.map((pkg, index) => (
                 <motion.div
-                  key={pkg._id}
+                  key={pkg.id}
                   initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
@@ -98,21 +107,22 @@ export default function PackagesPage() {
                   <motion.div
                     whileHover={{ y: -8 }}
                     transition={{ duration: 0.4 }}
-                    className="soft-card overflow-hidden"
+                    className={`soft-card overflow-hidden relative ${pkg.popular ? "ring-2 ring-primary" : ""}`}
                   >
+                    {/* Popular Badge */}
+                    {pkg.popular && (
+                      <div className="absolute top-4 right-4 z-10">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                          <Sparkles className="w-3 h-3" />
+                          Most Popular
+                        </span>
+                      </div>
+                    )}
+
                     {/* Image */}
-                    <div className="image-hover h-64 md:h-72 bg-secondary">
-                      {pkg.images && pkg.images.length > 0 ? (
-                        <img
-                          src={pkg.images[0] || "/placeholder.svg"}
-                          alt={pkg.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          No image available
-                        </div>
-                      )}
+                    <div className="image-hover h-64 md:h-72">
+                      <img src={pkg.image || "/placeholder.svg"} alt={pkg.title} className="w-full h-full object-cover" />
+                      <div className={`absolute inset-0 bg-gradient-to-t ${pkg.color} opacity-20`} />
                     </div>
 
                     {/* Content */}
@@ -120,8 +130,8 @@ export default function PackagesPage() {
                       {/* Header */}
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <h3 className="font-serif text-2xl font-semibold text-foreground">{pkg.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{pkg.category}</p>
+                          <h3 className="font-serif text-2xl font-semibold text-foreground">{pkg.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">{pkg.subtitle}</p>
                         </div>
                         <div className="text-right">
                           <div className="text-3xl font-serif font-bold text-primary">${pkg.price}</div>
@@ -135,47 +145,54 @@ export default function PackagesPage() {
                       <div className="flex items-center gap-6 mb-6 text-sm">
                         <div className="flex items-center gap-2 text-foreground">
                           <Clock className="w-4 h-4 text-primary" />
-                          {pkg.duration} {pkg.durationUnit}
+                          {pkg.duration}
                         </div>
-                        {pkg.features && (
-                          <div className="flex items-center gap-2 text-foreground">
-                            <ImageIcon className="w-4 h-4 text-primary" />
-                            {pkg.features.length} features
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-foreground">
+                          <ImageIcon className="w-4 h-4 text-primary" />
+                          {pkg.photos} photos
+                        </div>
                       </div>
 
                       {/* Features */}
                       <ul className="space-y-3 mb-8">
-                        {pkg.features &&
-                          pkg.features.slice(0, 4).map((feature, i) => (
-                            <li key={i} className="flex items-center gap-3 text-sm text-foreground">
-                              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <Check className="w-3 h-3 text-primary" />
-                              </div>
-                              {feature}
-                            </li>
-                          ))}
+                        {pkg.features.slice(0, 4).map((feature, i) => (
+                          <li key={i} className="flex items-center gap-3 text-sm text-foreground">
+                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Check className="w-3 h-3 text-primary" />
+                            </div>
+                            {feature}
+                          </li>
+                        ))}
                       </ul>
 
                       {/* CTA Button */}
-                      <Button
-                        onClick={() => handleBooking(pkg._id?.toString() || "", pkg.name)}
-                        className="w-full"
-                        size="lg"
-                      >
-                        {user ? (
-                          <>
-                            Book This Package
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="w-4 h-4 mr-2" />
-                            Sign In to Book
-                          </>
-                        )}
-                      </Button>
+                      {!user ? (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => router.push("/login")}
+                          className={`w-full py-4 rounded-full font-medium flex items-center justify-center gap-2 transition-all duration-300 group ${pkg.popular ? "btn-primary" : "btn-secondary"
+                            }`}
+                        >
+                          <Lock className="w-4 h-4" />
+                          Sign In to Book
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            console.log("Book package clicked", pkg)
+                            handleBooking(pkg)
+                          }}
+                          className={`w-full py-4 rounded-full font-medium flex items-center justify-center gap-2 transition-all duration-300 group relative z-20 cursor-pointer ${pkg.popular ? "btn-primary" : "btn-secondary"
+                            }`}
+                        >
+                          Book This Package
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </motion.button>
+                      )}
                     </div>
                   </motion.div>
                 </motion.div>
@@ -185,7 +202,37 @@ export default function PackagesPage() {
         </div>
       </section>
 
+      {/* Additional Info */}
+      <section className="py-16 bg-secondary/50">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center max-w-2xl mx-auto"
+          >
+            <h3 className="font-serif text-2xl md:text-3xl font-semibold text-foreground mb-4">
+              Need a Custom Package?
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              We offer customized photography packages tailored to your specific needs. Contact us to discuss your
+              vision and get a personalized quote.
+            </p>
+            <motion.a
+              href="mailto:hello@devbaby.com"
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              <Camera className="w-5 h-5" />
+              Get Custom Quote
+            </motion.a>
+          </motion.div>
+        </div>
+      </section>
+
       <Footer />
-    </main>
+    </motion.div>
   )
 }
+

@@ -1,48 +1,66 @@
-import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import Chatbot from "@/components/Chatbot"
+import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
+import { Providers } from "./providers"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" })
 
 export const metadata: Metadata = {
-  title: "Tiny Treasures Studio - Professional Photography for Every Milestone",
-  description:
-    "Capture precious moments with our professional photography packages for newborns, babies, and families.",
-  generator: "v0.app",
-  icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+  title: "Dev Baby Photography | Professional Newborn & Baby Photography",
+  description: "Capture your baby's precious first moments with award-winning photography services. Newborn, milestone, and first birthday sessions. Book your session today!",
+  authors: [{ name: "Dev Baby Photography" }],
+  openGraph: {
+    type: "website",
+    url: "https://devbaby.com/",
+    title: "Dev Baby Photography | Professional Newborn & Baby Photography",
+    description: "Capture your baby's precious first moments with award-winning photography services. Newborn, milestone, and first birthday sessions.",
+    images: ["https://lovable.dev/opengraph-image-p98pqg.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@DevBabyPhoto",
+    title: "Dev Baby Photography | Professional Newborn & Baby Photography",
+    description: "Capture your baby's precious first moments with award-winning photography services.",
+    images: ["https://lovable.dev/opengraph-image-p98pqg.png"],
   },
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className={`font-sans antialiased`}>
-        {children}
-        <Chatbot />
-        <Analytics />
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "LocalBusiness",
+              name: "Dev Baby Photography",
+              description: "Professional newborn and baby photography studio specializing in capturing precious moments from newborn to first birthday.",
+              url: "https://devbaby.com",
+              telephone: "+91 9427765032",
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "Surat",
+                addressLocality: "Gujarat",
+                addressRegion: "CA",
+                postalCode: "90210",
+                addressCountry: "IN",
+              },
+              priceRange: "$299-$449",
+              openingHours: "Mo-Sa 09:00-18:00",
+              sameAs: ["https://instagram.com/devbaby", "https://facebook.com/devbaby"],
+            }),
+          }}
+        />
+      </head>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

@@ -4,7 +4,7 @@ export interface IBooking extends Document {
   userId: Types.ObjectId
   packageId: Types.ObjectId
   bookingDate: Date
-  sessionDate: Date
+  sessionDate?: Date
   notes?: string
   status: "pending" | "confirmed" | "completed" | "cancelled"
   createdAt: Date
@@ -29,7 +29,6 @@ const BookingSchema = new Schema<IBooking>(
     },
     sessionDate: {
       type: Date,
-      required: true,
     },
     notes: {
       type: String,

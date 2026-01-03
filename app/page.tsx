@@ -1,33 +1,41 @@
+"use client"
+
+import { motion } from "framer-motion"
 import Navbar from "@/components/Navbar"
-import Hero from "@/src/components/Hero"
-import Services from "@/src/components/Services"
-import Testimonials from "@/src/components/Testimonials"
-import Gallery from "@/src/components/Gallery"
-import CTA from "@/src/components/CTA"
-import Footer from "@/src/components/Footer"
-import ScrollProgress from "@/components/ScrollProgress"
-import SpotlightEffect from "@/components/SpotlightEffect"
-import ChatbotWidget from "@/components/ChatbotWidget"
+import Hero from "@/components/Hero"
+import Services from "@/components/Services"
+import Testimonials from "@/components/Testimonials"
+import Gallery from "@/components/Gallery"
+import CTA from "@/components/CTA"
+import Footer from "@/components/Footer"
+import ScrollToTop from "@/components/ScrollToTop"
+import ParticleEffect from "@/components/ParticleEffect"
+import AnimatedBackground from "@/components/AnimatedBackground"
+import Chatbot from "@/components/Chatbot"
 
-export const metadata = {
-  title: "Tiny Treasures Studio - Professional Photography for Every Milestone",
-  description:
-    "Capture precious moments with our professional photography packages for newborns, babies, and families.",
-}
-
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className="min-h-screen relative overflow-x-hidden">
-      <ScrollProgress />
-      <SpotlightEffect />
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen relative"
+    >
+      <AnimatedBackground />
+      <ParticleEffect />
+
       <Navbar />
-      <Hero />
-      <Services />
-      <Gallery />
-      <ChatbotWidget />
-      <Testimonials />
-      <CTA />
+      <main>
+        <Hero />
+        <Services />
+        <Gallery />
+        <Testimonials />
+        <CTA />
+      </main>
       <Footer />
-    </main>
+
+      <ScrollToTop />
+      <Chatbot />
+    </motion.div>
   )
 }

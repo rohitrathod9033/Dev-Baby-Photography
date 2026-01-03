@@ -1,152 +1,84 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { generateText } from "ai"
+import { NextResponse } from "next/server"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
-const INTENTS = {
-  GREETING: {
-    patterns: ["hi", "hello", "namaste", "hey", "shukriya", "kaise ho", "kaisa hai", "hiya"],
-    response: "greeting",
-  },
-  APPOINTMENT: {
-    patterns: [
-      "book",
-      "appointment",
-      "slot",
-      "timing",
-      "date",
-      "time",
-      "schedule",
-      "booking",
-      "mil sakta",
-      "available",
-      "kab",
-      "session",
-    ],
-    response: "appointment",
-  },
-  PACKAGES: {
-    patterns: ["package", "pricing", "cost", "rate", "price", "plan", "offer", "deal", "services", "rate"],
-    response: "packages",
-  },
-  PAYMENT: {
-    patterns: ["payment", "pay", "cost", "charge", "amount", "price", "paise", "bill"],
-    response: "payment",
-  },
-  ABOUT: {
-    patterns: ["about", "who are you", "story", "team", "experience", "history", "studio", "aap kaun"],
-    response: "about",
-  },
-  CONTACT: {
-    patterns: ["contact", "phone", "email", "address", "reach", "connect", "number"],
-    response: "contact",
-  },
-}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
-function detectIntent(message: string): string {
-  const lowerMsg = message.toLowerCase()
+export async function POST(req: Request) {
+    let message = ""
+    try {
+        const body = await req.json()
+        message = body.message
 
-  for (const [, intent] of Object.entries(INTENTS)) {
-    if (intent.patterns.some((pattern) => lowerMsg.includes(pattern))) {
-      return intent.response
+        if (!process.env.GEMINI_API_KEY) {
+            return NextResponse.json({
+                message: "Gemini API Key is missing. Please configure GEMINI_API_KEY in .env file.",
+                intent: "general"
+            })
+        }
+
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" })
+
+        const prompt = `
+        You are the virtual assistant for 'Dev Baby Photography' (also known as Tiny Treasures).
+        Your goal is to help users with appointments, packages, pricing, and payments.
+        Be polite, helpful, and concise.
+        
+        You must respond in a valid JSON format with two fields:
+        1. 'message': Your natural language response to the user.
+        2. 'intent': One of the following values based on the user's need: 'appointment', 'packages', 'payment', 'contact', 'greeting', 'general'.
+        
+        Intent Guide:
+        - appointment: for booking, looking for slots, or timing questions.
+        - packages: for prices, costs, or package descriptions.
+        - payment: for questions about how to pay.
+        - contact: for calls, emails, or location.
+        - greeting: for hi, hello, or intros.
+        - general: for anything else.
+
+        Do NOT include markdown formatting like \`\`\`json. Just return the raw JSON string.
+        
+        User's message: "${message}"
+        `
+
+        const result = await model.generateContent(prompt)
+        const responseText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim()
+
+        const responseData = JSON.parse(responseText)
+
+        return NextResponse.json({
+            message: responseData.message,
+            intent: responseData.intent
+        })
+
+    } catch (error: any) {
+        console.error("Chat API Error:", error)
+
+        // Fallback Logic
+        const lowerMsg = message.toLowerCase()
+        let responseMessage = "I'm having trouble connecting to my AI brain. However, I can still try to help."
+        let intent = "general"
+
+        if (lowerMsg.includes("appointment") || lowerMsg.includes("book") || lowerMsg.includes("slot")) {
+            responseMessage = "You can book an appointment or view available slots on our Appointments page."
+            intent = "appointment"
+        } else if (lowerMsg.includes("package") || lowerMsg.includes("price") || lowerMsg.includes("cost")) {
+            responseMessage = "We have various packages available. You can check them out on our Packages page."
+            intent = "packages"
+        } else if (lowerMsg.includes("pay") || lowerMsg.includes("money")) {
+            responseMessage = "For payments, you can proceed through the booking flow. If you have issues, please contact admin."
+            intent = "payment"
+        } else if (lowerMsg.includes("contact") || lowerMsg.includes("call") || lowerMsg.includes("email") || lowerMsg.includes("mobile")) {
+            responseMessage = "You can contact us via our Contact form or using the details provided."
+            intent = "contact"
+        } else if (lowerMsg.includes("hi") || lowerMsg.includes("hello")) {
+            responseMessage = "Hello! I am currently running on backup power, but I can still assist you with basics!"
+            intent = "greeting"
+        }
+
+        return NextResponse.json({
+            message: responseMessage,
+            intent: intent,
+            isFallback: true
+        })
     }
-  }
-
-  return "general"
-}
-
-async function generateChatbotResponse(message: string, intent: string) {
-  const systemPrompt = `
-You are Tiny Treasures Studio's friendly virtual assistant. Your name is implied by the studio.
-
-TONE & PERSONALITY:
-- Friendly, polite, confident, and supportive
-- Use simple Hinglish (Hindi-English mix naturally)
-- Short, clear, helpful replies (max 2-3 sentences)
-- Never robotic or overwhelming
-- Always solution-oriented
-
-KEY RULES:
-1. Never mention AI models, OpenAI, or that you're an AI
-2. Never say "as an AI model" or expose internal logic
-3. Always stay in character as a human assistant
-4. Keep responses conversational and warm
-5. Add helpful context without being pushy
-
-RESPONSE GUIDELINES BY INTENT:
-- APPOINTMENT: Mention Mon-Sat, 9 AM-9 PM, 1-hour slots. Suggest booking now.
-- PACKAGES: Direct to packages with enthusiasm
-- PAYMENT: Explain payment process simply
-- CONTACT: Provide contact options warmly
-- GREETING: Greet warmly and ask how to help
-- GENERAL: Offer to help or escalate if needed
-
-User message: "${message}"
-Intent: ${intent}
-
-Respond ONLY with the chat message - nothing else. Keep it Hinglish, natural, and helpful.
-`
-
-  try {
-    const { text } = await generateText({
-      model: "openai/gpt-4o-mini",
-      prompt: systemPrompt,
-      temperature: 0.8,
-      maxTokens: 100,
-    })
-
-    return text.trim()
-  } catch (error) {
-    console.error("AI generation error:", error)
-    return getDefaultResponse(intent)
-  }
-}
-
-function getDefaultResponse(intent: string): string {
-  const responses: Record<string, string> = {
-    greeting:
-      "Hi 👋 Main aapka assistant hoon! Kaise help kar sakta hoon aapko aaj? Appointment, packages, ya kuch aur?",
-    appointment:
-      "Bilkul! Hum Monday se Saturday tak appointments dete hain, 9 AM se 9 PM tak. Har session 1 hour ka hota hai. Kab book karna hai?",
-    packages:
-      "Hum bahut sare premium packages offer karte hain! Aap yahan dekh sakte ho details, pricing, aur availability. Kaunsa package pasand hai aapko?",
-    payment:
-      "Payment bahut simple hai! Aap card, UPI, ya bank transfer se pay kar sakte ho. Kya aapko payment process samajhana hai?",
-    about:
-      "Hum ek professional photography studio hain jo quality, trust, aur best experience pe focus karte hain. Aur jaankari chahiye?",
-    contact:
-      "Aap humse directly contact kar sakte ho Contact Page se ya mujhe aapka number dikha duun. Aap kya prefer karte ho?",
-    general:
-      "Iska thoda clarify kar denge? Ya main aapko admin se connect kara duun? Main yahan hoon help karne ke liye!",
-  }
-
-  return responses[intent] || responses.general
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { message } = body
-
-    if (!message || typeof message !== "string") {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 })
-    }
-
-    const intent = detectIntent(message)
-    const response = await generateChatbotResponse(message, intent)
-
-    return NextResponse.json({
-      message: response,
-      intent,
-      timestamp: new Date().toISOString(),
-    })
-  } catch (error) {
-    console.error("Chat API error:", error)
-    return NextResponse.json(
-      {
-        message: "Kshama kijiye, kuch problem ho gaya. Please dobara try kijiye.",
-        intent: "error",
-        timestamp: new Date().toISOString(),
-      },
-      { status: 200 },
-    )
-  }
 }

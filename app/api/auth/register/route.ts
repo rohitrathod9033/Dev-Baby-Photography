@@ -1,53 +1,53 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import { signToken, setAuthCookie, JwtPayload } from "@/lib/auth"
 import connectDB from "@/lib/mongodb"
 import User from "@/models/User"
-import { signToken, setAuthCookie } from "@/lib/auth"
 
-export async function POST(request: NextRequest) {
-  try {
-    await connectDB()
+export async function POST(request: Request) {
+    try {
+        const { name, email, password } = await request.json()
 
-    const { email, password, name } = await request.json()
+        if (!name || !email || !password) {
+            return NextResponse.json({ error: "Please provide all fields" }, { status: 400 })
+        }
 
-    // Validation
-    if (!email || !password || !name) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+        await connectDB()
+
+        // Check if user already exists
+        const userExists = await User.findOne({ email })
+        if (userExists) {
+            return NextResponse.json({ error: "User already exists" }, { status: 400 })
+        }
+
+        // Create user
+        const user = await User.create({
+            name,
+            email,
+            password,
+        })
+
+        // Create JWT payload
+        const payload: JwtPayload = {
+            id: user._id.toString(),
+            email: user.email,
+            role: user.role,
+        }
+
+        // Sign and set cookie
+        const token = await signToken(payload)
+        await setAuthCookie(token)
+
+        // Return user info
+        const userInfo = {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role,
+        }
+
+        return NextResponse.json({ user: userInfo })
+    } catch (error) {
+        console.error("Registration error:", error)
+        return NextResponse.json({ error: "Registration failed" }, { status: 500 })
     }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email })
-    if (existingUser) {
-      return NextResponse.json({ error: "User already exists" }, { status: 409 })
-    }
-
-    // Create new user
-    const user = new User({ email, password, name, role: "user" })
-    await user.save()
-
-    // Generate token
-    const token = await signToken({
-      id: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    })
-
-    // Set auth cookie
-    await setAuthCookie(token)
-
-    return NextResponse.json(
-      {
-        message: "User registered successfully",
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        },
-      },
-      { status: 201 },
-    )
-  } catch (error) {
-    console.error("[v0] Registration error:", error)
-    return NextResponse.json({ error: "Registration failed" }, { status: 500 })
-  }
 }
