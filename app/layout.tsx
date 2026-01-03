@@ -9,20 +9,18 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfa
 export const metadata: Metadata = {
   title: "Dev Baby Photography | Professional Newborn & Baby Photography",
   description: "Capture your baby's precious first moments with award-winning photography services. Newborn, milestone, and first birthday sessions. Book your session today!",
-  authors: [{ name: "Dev Baby Photography" }],
+  authors: [{ name: "Rohit Rathod" }],
   openGraph: {
     type: "website",
     url: "https://devbaby.com/",
     title: "Dev Baby Photography | Professional Newborn & Baby Photography",
     description: "Capture your baby's precious first moments with award-winning photography services. Newborn, milestone, and first birthday sessions.",
-    // images: ["https://lovable.dev/opengraph-image-p98pqg.png"],
   },
   twitter: {
     card: "summary_large_image",
     site: "@DevBabyPhoto",
     title: "Dev Baby Photography | Professional Newborn & Baby Photography",
     description: "Capture your baby's precious first moments with award-winning photography services.",
-    // images: ["https://lovable.dev/opengraph-image-p98pqg.png"],
   },
 }
 
