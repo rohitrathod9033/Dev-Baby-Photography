@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth"
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const user = await getCurrentUser()
@@ -14,7 +14,7 @@ export async function DELETE(
         }
 
         await connectDB()
-        const { id } = params
+        const { id } = await params
         const deleted = await Gallery.findByIdAndDelete(id)
 
         if (!deleted) {

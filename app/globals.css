@@ -135,12 +135,18 @@
     font-family: var(--font-inter), 'Inter', sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-playfair), 'Playfair Display', serif;
   }
 }
 
 @layer components {
+
   /* Glassmorphism Card */
   .glass-card {
     @apply bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl;
@@ -212,6 +218,7 @@
 }
 
 @layer utilities {
+
   /* Custom Animations */
   .animate-float {
     animation: float 6s ease-in-out infinite;
@@ -226,18 +233,24 @@
   }
 
   @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0);
     }
+
     50% {
       transform: translateY(-20px);
     }
   }
 
   @keyframes pulse-soft {
-    0%, 100% {
+
+    0%,
+    100% {
       opacity: 1;
     }
+
     50% {
       opacity: 0.7;
     }

@@ -7,11 +7,11 @@ const CTA = () => {
     <section className="py-20 md:py-28 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary via-rose to-rose-dark" />
-      
+
       {/* Decorative Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          animate={{ 
+          animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3]
           }}
@@ -19,7 +19,7 @@ const CTA = () => {
           className="absolute -top-20 -left-20 w-64 h-64 bg-card/10 rounded-full blur-3xl"
         />
         <motion.div
-          animate={{ 
+          animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.2, 0.4, 0.2]
           }}

@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { 
-  Instagram, 
-  Facebook, 
-  Twitter, 
-  Mail, 
-  Phone, 
+import {
+  Instagram,
+  Facebook,
+  Twitter,
+  Mail,
+  Phone,
   MapPin,
   Heart
 } from "lucide-react";
@@ -55,7 +55,7 @@ const Footer = () => {
               Capturing precious moments and creating timeless memories for families
               since 2016.
             </p>
-            
+
             {/* Social Links */}
             <div className="flex items-center gap-3">
               {[
