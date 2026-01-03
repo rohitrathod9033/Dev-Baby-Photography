@@ -28,7 +28,7 @@ export async function setAuthCookie(token: string): Promise<void> {
   const cookieStore = await cookies()
   cookieStore.set("auth-token", token, {
     httpOnly: true,
-    secure: false, // Force false for debugging localhost
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60, // 7 days
   })
