@@ -5,7 +5,13 @@ import connectDB from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import { getCurrentUser } from "@/lib/auth";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+    throw new Error("STRIPE_SECRET_KEY is missing in environment variables");
+}
+
+const stripe = new Stripe(stripeSecretKey, {
     // @ts-ignore
     apiVersion: "2024-06-20",
 });
@@ -36,6 +42,9 @@ export async function POST(req: Request) {
             bookingDate: new Date(),
         });
 
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        console.log("Creating checkout session with App URL:", appUrl);
+
         // Create Checkout Session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
@@ -49,7 +58,7 @@ export async function POST(req: Request) {
                                 ? [
                                     image.startsWith("http")
                                         ? image
-                                        : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}${image}`,
+                                        : `${appUrl}${image}`,
                                 ]
                                 : [],
                         },
@@ -59,8 +68,8 @@ export async function POST(req: Request) {
                 },
             ],
             mode: "payment",
-            success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/packages`,
+            success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${appUrl}/packages`,
             metadata: {
                 packageId: String(packageId),
                 bookingId: newBooking._id.toString(),

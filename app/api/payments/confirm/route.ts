@@ -4,7 +4,13 @@ import Stripe from "stripe";
 import connectDB from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+    throw new Error("STRIPE_SECRET_KEY is missing in environment variables");
+}
+
+const stripe = new Stripe(stripeSecretKey, {
     // @ts-ignore
     apiVersion: "2024-06-20",
 });
