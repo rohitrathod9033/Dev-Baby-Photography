@@ -42,7 +42,18 @@ export async function POST(req: Request) {
             bookingDate: new Date(),
         });
 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        let appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+        if (process.env.NODE_ENV === "production") {
+            if (!appUrl) {
+                throw new Error("NEXT_PUBLIC_APP_URL is missing in production environment");
+            }
+            if (appUrl.includes("localhost")) {
+                console.warn("Warning: NEXT_PUBLIC_APP_URL is set to localhost in production");
+            }
+        }
+
+        appUrl = appUrl || "http://localhost:3000";
         console.log("Creating checkout session with App URL:", appUrl);
 
         // Create Checkout Session
