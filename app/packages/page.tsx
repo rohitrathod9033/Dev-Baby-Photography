@@ -8,6 +8,7 @@ import Footer from "@/components/Footer"
 import { useAuth } from "@/contexts/auth-context"
 import { usePackages } from "@/contexts/packages-context"
 import { useToast } from "@/hooks/use-toast"
+import Script from "next/script"
 
 export default function PackagesPage() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export default function PackagesPage() {
     try {
       toast({
         title: "Processing Booking",
-        description: "Please wait while we redirect you to payment...",
+        description: "Please wait while we set up the payment...",
       })
 
       const response = await fetch("/api/create-checkout-session", {
@@ -37,13 +38,70 @@ export default function PackagesPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to create checkout session")
+        throw new Error("Failed to create order")
       }
 
-      const { url } = await response.json()
-      if (url) {
-        window.location.href = url
-      }
+      const orderData = await response.json()
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Dev Baby Photography",
+        description: `Booking for ${pkg.title}`,
+        image: pkg.image,
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          // Verify Payment
+          try {
+            const verifyRes = await fetch("/api/payments/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                bookingId: orderData.bookingId
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+
+            if (verifyData.status === "success") {
+              toast({
+                title: "Payment Successful",
+                description: "Your booking has been confirmed!",
+              });
+              router.push("/success");
+            } else {
+              toast({
+                title: "Payment Verification Failed",
+                description: verifyData.error || "Please contact support.",
+                variant: "destructive",
+              });
+            }
+          } catch (err) {
+            toast({
+              title: "Verification Error",
+              description: "Something went wrong verifying the payment.",
+              variant: "destructive",
+            });
+          }
+        },
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.open();
+
     } catch (error) {
       console.error("Booking error:", error)
       toast({
@@ -61,6 +119,10 @@ export default function PackagesPage() {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-background"
     >
+      <Script
+        id="razorpay-checkout-js"
+        src="https://checkout.razorpay.com/v1/checkout.js"
+      />
       <Navbar />
 
       {/* Hero Section */}

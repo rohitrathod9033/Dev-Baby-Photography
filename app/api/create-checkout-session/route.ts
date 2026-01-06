@@ -1,19 +1,12 @@
-// Force rebuild
-import Stripe from "stripe";
+import Razorpay from "razorpay";
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import { getCurrentUser } from "@/lib/auth";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-if (!stripeSecretKey) {
-    throw new Error("STRIPE_SECRET_KEY is missing in environment variables");
-}
-
-const stripe = new Stripe(stripeSecretKey, {
-    // @ts-ignore
-    apiVersion: "2024-06-20",
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID!,
+    key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
 export async function POST(req: Request) {
@@ -42,54 +35,31 @@ export async function POST(req: Request) {
             bookingDate: new Date(),
         });
 
-        let appUrl = process.env.NEXT_PUBLIC_APP_URL;
+        const amountInPaise = Math.round(price * 100);
 
-        if (process.env.NODE_ENV === "production") {
-            if (!appUrl) {
-                throw new Error("NEXT_PUBLIC_APP_URL is missing in production environment");
-            }
-            if (appUrl.includes("localhost")) {
-                console.warn("Warning: NEXT_PUBLIC_APP_URL is set to localhost in production");
-            }
-        }
-
-        appUrl = appUrl || "http://localhost:3000";
-        console.log("Creating checkout session with App URL:", appUrl);
-
-        // Create Checkout Session
-        const session = await stripe.checkout.sessions.create({
-            payment_method_types: ["card"],
-            line_items: [
-                {
-                    price_data: {
-                        currency: "usd",
-                        product_data: {
-                            name: title,
-                            images: image
-                                ? [
-                                    image.startsWith("http")
-                                        ? image
-                                        : `${appUrl}${image}`,
-                                ]
-                                : [],
-                        },
-                        unit_amount: Math.round(price * 100), // Stripe expects amount in cents
-                    },
-                    quantity: 1,
-                },
-            ],
-            mode: "payment",
-            success_url: `${appUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${appUrl}/packages`,
-            metadata: {
+        const options = {
+            amount: amountInPaise,
+            currency: "USD", // Or INR, depending on requirements. Assuming USD for now based on previous code.
+            receipt: newBooking._id.toString(),
+            notes: {
                 packageId: String(packageId),
                 bookingId: newBooking._id.toString(),
+                userId: user.id,
             },
+        };
+
+        const order = await razorpay.orders.create(options);
+
+        return NextResponse.json({
+            orderId: order.id,
+            amount: amountInPaise,
+            currency: order.currency,
+            keyId: process.env.RAZORPAY_KEY_ID,
+            bookingId: newBooking._id.toString(), // Send this back for verification later if needed
         });
 
-        return NextResponse.json({ url: session.url });
     } catch (err: any) {
-        console.error("Stripe Checkout Error:", err);
+        console.error("Razorpay Order Error:", err);
         return NextResponse.json(
             { error: err.message || "Internal Server Error" },
             { status: 500 }
